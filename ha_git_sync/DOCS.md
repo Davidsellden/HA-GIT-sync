@@ -14,42 +14,20 @@ You need:
 - A free [GitHub account](https://github.com/signup). If you do not have one, create an account, verify your email and sign in.
 - Internet access. The add-on connects to GitHub using SSH on port 22.
 
-There are **two different repositories** (a repository is a project folder stored on GitHub):
-
-| Repository | What it is for | Where you enter it |
-| --- | --- | --- |
-| `https://github.com/Davidsellden/HA-GIT-sync` | The add-on's program and updates. | Home Assistant's app/add-on store. |
-| Your own private repository, created below. | Your HA files and dashboard backups. | HA Git Sync's Configuration tab. |
-
-Your HA files are uploaded to **your own repository**. Nothing is preconfigured to use another person's installation or backup destination.
-
-## 1. Create your private backup repository on GitHub
-
-1. Sign in to [GitHub](https://github.com).
-2. Select **+** in the upper-right corner, then **New repository**. You can also open [Create a new repository](https://github.com/new) directly.
-3. Under **Owner**, select your own account.
-4. Enter `ha-config` as **Repository name**.
-5. Select **Private** so your configuration is not visible to everyone.
-6. Enable **Add a README file** (also called **Add README**). This creates the first saved version and the initial branch. Do not skip this step.
-7. Leave the other choices at their defaults and select **Create repository**.
-8. At the top of the new page, note the name shown as `YOUR-USERNAME/ha-config`. You will enter that in Home Assistant. Replace `YOUR-USERNAME` with your actual GitHub username.
-
-A **branch** is a named version of the repository. The new repository normally has a branch named `main`; its name is shown in the branch selector above the file list. Use the name displayed there if it differs from `main`.
-
-## 2. Install from Home Assistant's app/add-on store
+## 1. Install from Home Assistant's app/add-on store
 
 1. Open **Settings → Apps → Install app**. Older versions call this **Settings → Add-ons → Add-on store**.
 2. In the store, open the upper-right **⋮** menu and choose **Repositories**.
-3. Paste `https://github.com/Davidsellden/HA-GIT-sync` and select **Add**.
+3. On this project's GitHub page, open **Code**, choose **HTTPS** and copy the repository URL. Paste that URL into Home Assistant and select **Add**.
 4. Close the dialog and refresh the store page if necessary.
 5. Find **HA Git Sync**, open it and select **Install**. Wait until installation finishes; the first build can take several minutes.
 6. Open the add-on's **Configuration** tab before selecting Start.
 
 The app source repository must be publicly accessible for this store installation to work. If HA cannot add the repository, see Troubleshooting below.
 
-## 3. Configure the add-on before starting it
+## 2. Configure the add-on before starting it
 
-In **Configuration**, change **GitHub repository** (`repository`) to the value from step 1, for example `YOUR-USERNAME/ha-config`. Use only `owner/name`: no `https://`, spaces or `.git` suffix.
+In **Configuration**, change **GitHub repository** (`repository`) to the name of your existing, initialized private backup repository, for example `YOUR-USERNAME/ha-config`. Use only `owner/name`: no `https://`, spaces or `.git` suffix.
 
 For your first setup, leave all other options at their defaults. In particular, leave dashboard sync off; you will choose the dashboard in the panel later.
 
@@ -69,7 +47,7 @@ Select **Save**. Then open **Info**, enable **Start on boot** and **Show in side
 
 If you edit options in this Configuration tab later, save and restart the add-on. Settings saved inside the Git Sync panel take effect immediately. For dashboard changes after initial setup, use the panel: a dashboard selection already saved there takes priority over Configuration-tab defaults.
 
-## 4. Connect the add-on to GitHub using its generated key
+## 3. Connect the add-on to GitHub using its generated key
 
 An SSH key is the add-on's access credential. The add-on creates it for you. You copy only its **public key** to GitHub; its private key stays in the add-on.
 
@@ -88,7 +66,7 @@ If you opened GitHub manually, the route is **your backup repository → Setting
 
 You do not need to generate keys on your computer, install an SSH app or create a personal access token. Keep this deploy key for future updates; a normal add-on update preserves it.
 
-## 5. Choose what to sync
+## 4. Choose what to sync
 
 ### Ordinary configuration files
 
@@ -128,7 +106,7 @@ Only one UI dashboard is mapped at a time. This backs up layout and configuratio
 
 **File-managed YAML dashboards:** If your dashboard is defined in a YAML file you maintain yourself, leave optional UI-dashboard sync off and select that existing file in the ordinary file picker. Do not select or copy `.storage` manually. While UI sync is enabled, its export takes priority over a disk file with the same chosen path.
 
-## 6. Make your first upload
+## 5. Make your first upload
 
 A **push** uploads the selected HA files to GitHub. A **commit** is one saved version of those files.
 
@@ -173,7 +151,7 @@ Updating the add-on changes its program. **Import from GitHub** changes your sel
 
 | What you see | What to check |
 | --- | --- |
-| Source repository cannot be added, or HA Git Sync is missing from the store | Recheck the source URL from step 2, refresh the store and check HA's Supervisor logs. The source must be publicly accessible. |
+| Source repository cannot be added, or HA Git Sync is missing from the store | Recheck the source URL from the installation section, refresh the store and check HA's Supervisor logs. The source must be publicly accessible. |
 | No app/add-on store | This add-on requires HA OS/Supervisor. It cannot be installed through HACS on standalone Core or Container. |
 | Add-on stops immediately | Save your actual `owner/repository` in Configuration, then start again. Check the add-on's Log tab. |
 | Test connection fails | Add the entire generated key to your backup repository's Deploy keys, enable write access and check internet/SSH access. |
