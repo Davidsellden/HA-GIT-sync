@@ -15,4 +15,14 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt -r ha_git_sync/requirements.txt
       - run: python -m unittest discover -s ha_git_sync/tests -v
-      - run: docker build -t ha-git-sync:test ha_git_sync
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test ha_git_sync/tests/test_frontend.cjs
+      - name: Build and verify Home Assistant image metadata
+        run: |
+          build_version="$(python -c 'import yaml; print(yaml.safe_load(open("ha_git_sync/config.yaml"))["version"])')"
+          docker build --build-arg BUILD_VERSION="$build_version" --build-arg BUILD_ARCH=amd64 -t ha-git-sync:test ha_git_sync
+          test "$(docker image inspect ha-git-sync:test --format '{{ index .Config.Labels "io.hass.version" }}')" = "$build_version"
+          test "$(docker image inspect ha-git-sync:test --format '{{ index .Config.Labels "io.hass.arch" }}')" = "amd64"
+          test "$(docker image inspect ha-git-sync:test --format '{{ index .Config.Labels "io.hass.type" }}')" = "app"

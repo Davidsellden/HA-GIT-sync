@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HA Git Sync</title>
   <link rel="stylesheet" href="static/style.css">
+  <script src="static/i18n.js" defer></script>
   <script src="static/app.js" defer></script>
 </head>
 <body>
@@ -21,6 +22,7 @@
     <div class="actions"><button class="secondary" id="copy-key" hidden>Kopiera nyckel</button><a id="keys-link" target="_blank" rel="noopener noreferrer">Öppna deploy keys ↗</a><button class="secondary" id="connect">Testa anslutning</button></div>
   </section>
 
+  <section class="card compact"><label for="language">Språk</label><select id="language"><option value="auto">Automatiskt (Home Assistant)</option><option value="sv">Svenska</option><option value="en">English</option></select></section>
   <div class="grid">
     <section class="card"><div class="direction" aria-hidden="true">HA → GitHub</div><h2>Pusha till GitHub</h2><p>Spara de aktuella HA-filerna som en ny commit. Granska ändringarna först.</p>
       <label for="push-branch">Branch att pusha till</label><select id="push-branch"><option value="">Hämta branchlistan först</option></select>
@@ -46,9 +48,9 @@
   <section class="card"><p class="eyebrow">DITT FILURVAL</p><h2>Välj filer och mappar</h2>
     <p>Bocka i enstaka filer eller hela mappar. Ett mappval omfattar även framtida tillåtna filer. Samma urval används för push och inläsning.</p>
     <button class="secondary" id="load-files">Visa mina filer och mappar</button>
-    <div id="file-picker" hidden><label for="file-search">Sök bland filer</label><input id="file-search" placeholder="Exempel: huset.yaml"><div id="file-list" class="file-list"></div>
-      <label for="extra-paths">Extra sökvägar, även filer som ännu bara finns i GitHub</label><textarea id="extra-paths" rows="2" placeholder="huset.yaml&#10;egna-paket/"></textarea>
-      <label for="exclude-paths">Egna undantag, en fil eller mapp per rad</label><textarea id="exclude-paths" rows="2" placeholder="egna-paket/test.yaml"></textarea>
+    <div id="file-picker" hidden><label for="file-search">Sök bland filer</label><input id="file-search" placeholder="Exempel: custom.yaml"><div id="file-list" class="file-list"></div>
+      <label for="extra-paths">Extra sökvägar, även filer som ännu bara finns i GitHub</label><textarea id="extra-paths" rows="2" placeholder="custom.yaml&#10;packages/"></textarea>
+      <label for="exclude-paths">Egna undantag, en fil eller mapp per rad</label><textarea id="exclude-paths" rows="2" placeholder="packages/test.yaml"></textarea>
       <button class="primary" id="save-files">Spara filurval</button>
     </div><p class="muted">Secrets, dolda kataloger, databaser, loggar, HACS och Zigbee2MQTT kan inte väljas. Mappar anges med / på slutet.</p><p id="scope-summary"></p>
   </section>
@@ -62,6 +64,6 @@
     <button class="secondary" id="save-dashboard">Spara dashboardval</button><p id="dashboard"></p>
   </section>
   <section class="card compact"><h2>Vad synkas?</h2><p>Ditt sparade filurval och eventuell vald dashboard. Filer utanför urvalet i GitHub bevaras.</p><p class="muted">Secrets, .storage, databaser, HACS-filer och Zigbee2MQTT ingår inte. Backupen omfattar Home Assistant, inklusive dess databas och interna inställningar, men inte andra tillägg.</p></section>
-  <footer>HA Git Sync · 0.4.1 <button class="text-button" id="refresh">Uppdatera branchlistan</button></footer>
+  <footer>HA Git Sync · 0.5.0 <button class="text-button" id="refresh">Uppdatera branchlistan</button></footer>
 </main>
 </body></html>

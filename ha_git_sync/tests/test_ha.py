@@ -71,10 +71,10 @@ class HATests(unittest.TestCase):
         connection.recv.side_effect = [json.dumps({"type": "auth_required"}), json.dumps({"type": "auth_ok"}),
                                       json.dumps({"id": 1, "success": False})]
         with self.assertRaises(SyncError):
-            HomeAssistant(token="test-only", dashboard_path="dashboard-hemma").save_dashboard({"views": []})
+            HomeAssistant(token="test-only", dashboard_path="dashboard-overview").save_dashboard({"views": []})
         payload = json.loads(connection.send.call_args_list[1].args[0])
         self.assertEqual(payload["type"], "lovelace/config/save")
-        self.assertEqual(payload["url_path"], "dashboard-hemma")
+        self.assertEqual(payload["url_path"], "dashboard-overview")
         connection.close.assert_called_once()
 
 

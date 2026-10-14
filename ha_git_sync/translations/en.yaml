@@ -1,0 +1,28 @@
+configuration:
+  repository:
+    name: GitHub repository
+    description: "Your private backup repository as owner/name, for example your-username/ha-config. Required before starting. Do not enter a URL or the add-on source repository."
+  default_branch:
+    name: Base branch
+    description: "Existing branch in your GitHub repository. Usually main; check the branch selector on GitHub. Used as the starting point for new push branches."
+  push_branch:
+    name: Suggested push branch
+    description: "Initially suggested upload branch. You can choose main or another branch in the panel. Files uploaded to ha/updates are visible by selecting that branch on GitHub."
+  git_name:
+    name: Commit author name
+    description: "Name attached to saved versions in GitHub. Home Assistant is fine. This is not a GitHub login."
+  git_email:
+    name: Commit author email
+    description: "Author label for saved versions, not an authentication credential. Keep the default for setup or use your GitHub no-reply address."
+  dashboard_sync:
+    name: Dashboard sync
+    description: "Leave off for first setup. Select and enable a UI-managed dashboard inside the Git Sync panel. A selection saved in the panel overrides this default."
+  dashboard_url_path:
+    name: Dashboard URL path
+    description: "Leave lovelace for first setup. Later use Load dashboards in the panel to select your actual dashboard without typing a path."
+  dashboard_file:
+    name: Dashboard Git file
+    description: "Leave empty for first setup. Later choose an export filename in the panel, such as dashboards/dashboard.yaml. Empty defaults to that filename."
+  snapshot_retention:
+    name: Recovery snapshots
+    description: "Number of local recovery snapshots to keep (1–20). Leave 3 for setup. This does not delete Home Assistant backups."

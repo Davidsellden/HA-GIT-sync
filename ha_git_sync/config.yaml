@@ -1,8 +1,7 @@
 name: HA Git Sync
-version: "0.4.1"
+version: "0.5.0"
 slug: ha_git_sync
-description: Granska, säkerhetskopiera och synka HA-konfiguration med GitHub.
-url: https://github.com/Davidsellden/HA-GIT-sync/tree/main/ha_git_sync
+description: Review, back up and sync selected Home Assistant files with GitHub.
 arch:
   - amd64
   - aarch64
