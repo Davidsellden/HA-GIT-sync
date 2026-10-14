@@ -2,6 +2,9 @@
 
 ## 0.5.0
 
+- Beginner guide for app/add-on store installation and updates, private GitHub repository creation, generated deploy keys and UI-managed dashboards.
+- English/Swedish configuration field names and help text.
+- Supervisor image version/architecture metadata, checked during the CI build.
 - Swedish/English panel with automatic HA profile language detection and a remembered browser override.
 - Save-before-preview prompt for unsaved file selections, extra paths and exclusions; canceling or a failed save stops sync.
 - English instructions with explicit Supervisor/platform requirements and GitHub initialization steps.

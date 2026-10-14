@@ -1,0 +1,28 @@
+configuration:
+  repository:
+    name: GitHub-repository
+    description: "Ditt privata backuprepo som ägare/namn, exempelvis ditt-anvandarnamn/ha-config. Krävs före start. Ange inte en URL eller tilläggets källrepo."
+  default_branch:
+    name: Basbranch
+    description: "En befintlig branch i ditt GitHub-repo. Vanligen main; kontrollera branchväljaren på GitHub. Används som utgångspunkt för nya pushbrancher."
+  push_branch:
+    name: Föreslagen pushbranch
+    description: "Förvalt mål för uppladdning. Du kan välja main eller en annan branch i panelen. Filer i ha/updates visas genom att välja den branchen på GitHub."
+  git_name:
+    name: Namn på commit-författare
+    description: "Namn som visas på sparade versioner i GitHub. Home Assistant fungerar bra. Detta är inte en GitHub-inloggning."
+  git_email:
+    name: E-post för commit-författare
+    description: "Författaruppgift för sparade versioner, inte en inloggningsuppgift. Behåll standarden eller använd din no-reply-adress från GitHub."
+  dashboard_sync:
+    name: Dashboard-synkning
+    description: "Lämna avstängd vid första starten. Välj och aktivera en UI-styrd dashboard i Git Sync-panelen. Ett sparat panelval har företräde framför denna standard."
+  dashboard_url_path:
+    name: Dashboardens URL-sökväg
+    description: "Behåll lovelace vid första starten. Använd sedan Hämta dashboarder i panelen för att välja dashboard utan att skriva en sökväg."
+  dashboard_file:
+    name: Dashboardens Git-fil
+    description: "Lämna tom vid första starten. Välj sedan ett exportfilnamn i panelen, exempelvis dashboards/dashboard.yaml. Tomt använder det filnamnet som standard."
+  snapshot_retention:
+    name: Återställningspunkter
+    description: "Antal lokala återställningspunkter att behålla (1–20). Behåll 3 vid första starten. Inställningen tar inte bort Home Assistant-backuper."

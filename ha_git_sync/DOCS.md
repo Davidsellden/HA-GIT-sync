@@ -1,169 +1,198 @@
 # HA Git Sync
 
-Sync selected Home Assistant files with **your own GitHub repository**, with a preview before every push or import. Git runs in an isolated working copy outside the active HA configuration.
+Back up selected Home Assistant configuration files and a UI-managed dashboard to your own GitHub repository. Review changes before uploading or restoring them.
 
-## Requirements
+**Install and update through the Home Assistant app/add-on store.** No terminal, Git commands, manually generated SSH keys or GitHub access token are needed. HACS installs integrations and frontend extensions; this project is a Supervisor add-on and uses the app/add-on store instead.
 
-- Home Assistant OS with Supervisor on `amd64` or `aarch64`, an administrator account and access to the add-on store.
-- A GitHub repository you can manage. Use a private repository for HA configuration.
-- At least one commit on its base branch. Select **Add a README file** when creating it.
-- Outbound GitHub SSH access (port 22) and internet access for building the add-on.
+The interface is Swedish when your Home Assistant profile uses Swedish, otherwise English. You can also choose the language in the panel. This guide uses the English button names.
 
-Existing Supervised installations may work if their Supervisor provides add-on, backup and Core APIs. Container and standalone Core lack these services and are not supported. No particular hostname, instance IP, VM platform, dashboard name or personal configuration is required.
+## Before you begin
 
-## Installation
+You need:
 
-1. In HA, open **Settings → Add-ons → Add-on store** (called **Apps** in newer versions).
-2. Open **⋮ → Repositories**, add `https://github.com/Davidsellden/HA-GIT-sync`, then refresh the store.
-3. Find **HA Git Sync** and select **Install**. The first build can take several minutes.
-4. Before starting, open **Configuration** and set `repository` to **your configuration repository** in `owner/repo` form. Do not enter a URL or `.git` suffix. Set `default_branch` to its existing base branch, usually `main`.
-5. Save, start the add-on, enable **Show in sidebar** if desired and open its web interface.
-6. Complete the GitHub connection below.
+- Home Assistant OS on supported amd64/aarch64 hardware, an administrator login and the app/add-on store. HA OS installed directly on a computer is supported. Standalone Core and Container do not provide the required Supervisor services.
+- A free [GitHub account](https://github.com/signup). If you do not have one, create an account, verify your email and sign in.
+- Internet access. The add-on connects to GitHub using SSH on port 22.
 
-The source repository must be public for other users to add it directly to the store. If private or inaccessible, an authorized user can install a local copy. The source and your configuration destination are separate repositories.
+There are **two different repositories** (a repository is a project folder stored on GitHub):
 
-### Local installation
+| Repository | What it is for | Where you enter it |
+| --- | --- | --- |
+| `https://github.com/Davidsellden/HA-GIT-sync` | The add-on's program and updates. | Home Assistant's app/add-on store. |
+| Your own private repository, created below. | Your HA files and dashboard backups. | HA Git Sync's Configuration tab. |
 
-Copy this project's `ha_git_sync` directory into HA's `/addons/ha_git_sync`. In an HA terminal with Git and access to `/addons`, for example:
+Your HA files are uploaded to **your own repository**. Nothing is preconfigured to use another person's installation or backup destination.
 
-```sh
-git clone https://github.com/Davidsellden/HA-GIT-sync.git /share/ha-git-sync-source
-cp -R /share/ha-git-sync-source/ha_git_sync /addons/ha_git_sync
-ha store reload
-```
+## 1. Create your private backup repository on GitHub
 
-For private source access, use a separately authorized GitHub clone method. Terminal credentials are not used by the add-on. If the destination directory already exists, use the update instructions instead. Install via **Local add-ons → HA Git Sync**, configure your destination, then start.
+1. Sign in to [GitHub](https://github.com).
+2. Select **+** in the upper-right corner, then **New repository**. You can also open [Create a new repository](https://github.com/new) directly.
+3. Under **Owner**, select your own account.
+4. Enter `ha-config` as **Repository name**.
+5. Select **Private** so your configuration is not visible to everyone.
+6. Enable **Add a README file** (also called **Add README**). This creates the first saved version and the initial branch. Do not skip this step.
+7. Leave the other choices at their defaults and select **Create repository**.
+8. At the top of the new page, note the name shown as `YOUR-USERNAME/ha-config`. You will enter that in Home Assistant. Replace `YOUR-USERNAME` with your actual GitHub username.
 
-## Connect GitHub
+A **branch** is a named version of the repository. The new repository normally has a branch named `main`; its name is shown in the branch selector above the file list. Use the name displayed there if it differs from `main`.
 
-1. Select **Create SSH key** in the panel.
-2. Select **Copy key**, then **Open deploy keys**, or visit your destination repository's **Settings → Deploy keys → Add deploy key**.
-3. Paste the public key, give it a descriptive title, enable **Allow write access** and save.
-4. Return to the panel and select **Test connection**. The branch list should load.
+## 2. Install from Home Assistant's app/add-on store
 
-Each installation generates its own key. The private key stays in persistent `/data/ssh` and is never committed. GitHub's host key is verified against its published Ed25519 fingerprint. A deploy key grants access only to the repository where you add it.
+1. Open **Settings → Apps → Install app**. Older versions call this **Settings → Add-ons → Add-on store**.
+2. In the store, open the upper-right **⋮** menu and choose **Repositories**.
+3. Paste `https://github.com/Davidsellden/HA-GIT-sync` and select **Add**.
+4. Close the dialog and refresh the store page if necessary.
+5. Find **HA Git Sync**, open it and select **Install**. Wait until installation finishes; the first build can take several minutes.
+6. Open the add-on's **Configuration** tab before selecting Start.
 
-## Configuration
+The app source repository must be publicly accessible for this store installation to work. If HA cannot add the repository, see Troubleshooting below.
 
-```yaml
-repository: your-account/your-ha-config
-default_branch: main
-push_branch: ha/updates
-git_name: Home Assistant
-git_email: homeassistant@example.com
-dashboard_sync: false
-dashboard_url_path: lovelace
-dashboard_file: dashboards/dashboard.yaml
-snapshot_retention: 3
-```
+## 3. Configure the add-on before starting it
 
-| Option | Meaning |
+In **Configuration**, change **GitHub repository** (`repository`) to the value from step 1, for example `YOUR-USERNAME/ha-config`. Use only `owner/name`: no `https://`, spaces or `.git` suffix.
+
+For your first setup, leave all other options at their defaults. In particular, leave dashboard sync off; you will choose the dashboard in the panel later.
+
+| Setting | What to enter for the first setup |
 | --- | --- |
-| `repository` | Required destination GitHub repository, `owner/repo`. |
-| `default_branch` | Existing base branch for new push branches. |
-| `push_branch` | Suggested destination branch; change it in the panel. |
-| `git_name`, `git_email` | Commit author identity. Set your own identity if desired. |
-| `dashboard_sync` | Optional dashboard export/import, off by default. |
-| `dashboard_url_path` | Dashboard URL path; `lovelace` means the default dashboard. |
-| `dashboard_file` | Relative YAML path under `dashboards/`; empty uses `dashboards/dashboard.yaml`. |
-| `snapshot_retention` | Local snapshots retained, 1–20; the active recovery point is protected. |
+| GitHub repository (`repository`) | Your actual `YOUR-USERNAME/ha-config`. This is the one required change. |
+| Base branch (`default_branch`) | `main`, or the branch name shown in your GitHub repository. |
+| Suggested push branch (`push_branch`) | Leave `ha/updates`. The panel lets you choose another branch. |
+| Commit author name (`git_name`) | Leave `Home Assistant` or enter your preferred name. |
+| Commit author email (`git_email`) | Leave the example value for setup, or use a GitHub no-reply address from [GitHub email settings](https://github.com/settings/emails). This is an author label, not a login or password. |
+| Dashboard sync (`dashboard_sync`) | Leave off. |
+| Dashboard URL path (`dashboard_url_path`) | Leave `lovelace`. Choose the actual dashboard in the panel later. |
+| Dashboard Git file (`dashboard_file`) | Leave empty. Choose a filename in the panel later. |
+| Recovery snapshots (`snapshot_retention`) | Leave `3`. |
 
-Restart after changing add-on options. File selections and dashboard settings saved in the panel persist immediately. Panel-saved dashboard settings override add-on options. Explicitly saved filenames remain intact; new installations never infer a personal dashboard filename.
+Select **Save**. Then open **Info**, enable **Start on boot** and **Show in sidebar** if desired, select **Start**, and then **Open Web UI**.
 
-## Language
+If you edit options in this Configuration tab later, save and restart the add-on. Settings saved inside the Git Sync panel take effect immediately. For dashboard changes after initial setup, use the panel: a dashboard selection already saved there takes priority over Configuration-tab defaults.
 
-The panel defaults to **Automatic (Home Assistant)** and reads the current user's HA frontend language. Swedish (`sv`) uses Swedish; all other languages use English. If HA's language is unavailable, English is used. An open panel follows changes to the HA language.
+## 4. Connect the add-on to GitHub using its generated key
 
-Choose **Language → Svenska / English / Automatic (Home Assistant)** to override or restore automatic selection. The choice is remembered in this browser. Changing language closes an existing preview; review again before syncing. This guide is in English.
+An SSH key is the add-on's access credential. The add-on creates it for you. You copy only its **public key** to GitHub; its private key stays in the add-on.
 
-## Select files and folders
+1. In the Git Sync panel, select **Create SSH key**. A box containing a long line beginning with `ssh-ed25519` appears.
+2. Select **Copy key**. If automatic copying is unavailable, select and copy the entire line manually.
+3. Select **Open deploy keys**. This opens the settings for the repository you entered. Sign in to GitHub if asked.
+4. Confirm the repository name at the top is **your backup repository**.
+5. On GitHub, select **Add deploy key**.
+6. In **Title**, enter `Home Assistant Git Sync`.
+7. In **Key**, paste the entire public key line.
+8. Enable **Allow write access**. This is required to upload files; without it the key is read-only.
+9. Select **Add key**. GitHub may ask you to confirm your password or account authentication.
+10. Return to Home Assistant and select **Test connection**. The branch list should load.
 
-1. Select **Show my files and folders**.
-2. Select individual files or entire folders. Folders include future eligible files.
-3. Optionally add **Extra paths** for files currently only in GitHub or **Custom exclusions** for files/folders to skip.
-4. Select **Save file selection**.
+If you opened GitHub manually, the route is **your backup repository → Settings → Deploy keys → Add deploy key**. Use the repository's Settings tab, rather than your account's SSH-key settings.
 
-Enter one path per line relative to `/config`; end folder paths with `/`. Absolute paths and glob patterns are unsupported. Files inherited from a selected folder are checked automatically. Exclude a file explicitly or deselect its parent folder to select files individually.
+You do not need to generate keys on your computer, install an SSH app or create a personal access token. Keep this deploy key for future updates; a normal add-on update preserves it.
 
-The saved scope applies to both push and import. Deselecting a file does not delete it on either side. Unsaved checkbox, extra-path or exclusion changes trigger a **save-before-preview** question at the next push or import. Confirming saves first; canceling returns to editing without syncing. A failed save stops the operation. Reloading the file list also asks before discarding unsaved changes.
+## 5. Choose what to sync
 
-Until a custom selection is saved, the default includes `configuration.yaml`, `automations.yaml`, `scripts.yaml`, `scenes.yaml`, YAML under `packages/`, `themes/`, `blueprints/`, and supported web assets under `www/`.
+### Ordinary configuration files
 
-## Push to GitHub
+1. Select **Show my files and folders** in the panel.
+2. Check the files or folders you want to back up.
+3. Select **Save file selection**.
 
-1. Choose a destination branch. For a first trial, select **Create new branch** and enter `ha/updates`. New branches start from `default_branch`.
-2. Enter a commit message and select **Review and push**. Save unsaved selection changes if prompted.
-3. Inspect every filename and diff, including deletions, then select **Confirm push**.
+Whole-folder selections include future eligible files in that folder. **Extra paths** adds files not yet present locally; **Custom exclusions** skips specific files or folders. Enter one relative path per line; folder names end with `/`.
 
-HA's active configuration is validated before committing. Unselected GitHub files remain untouched. Unchanged content creates no commit, although a requested new branch can be created. YAML line endings are normalized in the Git copy while preserving meaningful block-scalar trailing newlines.
+The same saved selection applies to upload and import. Deselecting a file does not delete it from HA or GitHub. If you change checkboxes, extra paths or exclusions without saving, the next push/import asks you to save first. Cancel returns to editing without syncing.
 
-If the GitHub branch moves after previewing, push is rejected; review again. There is no automatic merge. A preview expires after 15 minutes; local file or dashboard changes invalidate it.
+### Dashboards created and edited in the Home Assistant UI
 
-## Import from GitHub
+Use **Optional dashboard** for a dashboard you create and edit with HA's **Edit dashboard**, **Add card**, and **Add view** controls. HA stores this dashboard internally; selecting ordinary configuration files does not export it.
 
-1. Choose the source branch and select **Review and import**.
-2. Inspect filenames and diffs. Missing local files are preserved by default. Enable **Also delete local files missing from the branch** before previewing only if you want them removed.
-3. Select **Back up and import**.
+This option exports the dashboard's layout as a YAML file in GitHub, then restores that layout through HA's dashboard API. The YAML file is a backup/export of the UI dashboard, not a switch to a file-managed dashboard. You continue editing the dashboard in the HA UI after export or import.
 
-Import validates the current configuration, waits for a completed Supervisor backup, saves a local recovery snapshot and persistent journal, updates files and validates HA again. The optional dashboard is updated through its API. If applying or validation fails, originals are restored. Each file is replaced atomically; the complete update is not one atomic operation. Avoid concurrent editing during import.
+**Choose or create an editable dashboard first:**
 
-The backup includes **Home Assistant, secrets, internal settings and its database**. Other add-ons and the host OS are excluded. Supervisor manages these backups; the add-on does not delete them. Local recovery snapshots are stored separately in `/data/snapshots`.
+1. In Home Assistant, open **Settings → Dashboards**.
+2. Choose a dashboard you already edit yourself, or select **Add dashboard → New dashboard from scratch**, give it a title and create it.
+3. Open that dashboard and check that you can edit its cards and views. If an automatically generated dashboard offers **Take control**, taking control turns off its automatic layout updates. For a first trial, create a separate dashboard from scratch instead.
 
-File changes do not restart HA automatically. Select **Validate and restart HA** when ready. Dashboard API changes take effect immediately. Use configuration appropriate for your installed HA version; validation does not simulate an upgrade.
+**Then configure its backup in Git Sync:**
 
-## Optional dashboard sync
+1. Return to the Git Sync panel and find **Optional dashboard → Select dashboard and Git file**.
+2. Select **Load dashboards**.
+3. In **Dashboard in Home Assistant**, choose the dashboard you just identified or created. Use the selector; you do not need to type its URL path.
+4. In **YAML file in the Git repository**, enter `dashboards/dashboard.yaml`. This is a new destination filename you choose for your GitHub backup; it need not exist in HA or GitHub yet.
+5. Enable **Sync the selected dashboard**.
+6. Select **Save dashboard selection**. Check the active-selection text beneath the button.
+7. Perform a push as described below. The add-on creates the Git file on the first push. Check GitHub to confirm it exists.
 
-Select **Load dashboards**, choose an existing dashboard, enter a file such as `dashboards/overview.yaml`, enable sync and select **Save dashboard selection**. The dashboard must be editable in the HA UI (storage mode). The add-on does not create dashboards or write directly to `.storage`.
+To restore it, use **Review and import** from a branch containing that file. The chosen UI dashboard must already exist in HA; importing updates its layout in place and does not create a new dashboard. Dashboard changes appear immediately without an HA restart.
 
-Push exports the chosen dashboard; import requires its Git file in the selected branch and uses `lovelace/config/save`. One dashboard can be mapped at a time. YAML dashboards on disk can instead be selected as ordinary files. API sync takes precedence over a disk file with the same path while enabled. When disabled, explicitly selected disk files are handled normally.
+Only one UI dashboard is mapped at a time. This backs up layout and configuration, not entities, integrations, installed custom cards or their resources. Required integrations and cards must also exist on the receiving installation.
 
-Dashboard resources and HACS cards are not synced; install required cards separately on the receiving installation.
+**File-managed YAML dashboards:** If your dashboard is defined in a YAML file you maintain yourself, leave optional UI-dashboard sync off and select that existing file in the ordinary file picker. Do not select or copy `.storage` manually. While UI sync is enabled, its export takes priority over a disk file with the same chosen path.
 
-## Recovery and troubleshooting
+## 6. Make your first upload
 
-- **Connection fails:** check `owner/repo`, an initialized base branch, deploy-key write access and outbound SSH access.
-- **Source missing from the store:** confirm source visibility, refresh the store or use local installation.
-- **Invalid YAML or suspected secrets:** inspect reported files locally, move credentials into `secrets.yaml` and reference them with `!secret`.
-- **Backup fails:** active files remain unchanged.
-- **Interrupted import:** the journal blocks new sync operations after restart until recovery. Select **Restore last update**.
-- **Manual restore:** later changes to affected files and the mapped dashboard are overwritten; the panel asks first.
-- **Core or ingress unavailable:** use HA's normal backup recovery tools. Dashboard API and validation may be unavailable even when file recovery works. Do not uninstall or delete add-on data during recovery.
+A **push** uploads the selected HA files to GitHub. A **commit** is one saved version of those files.
 
-Restore does not restart Core automatically. If Git ignore rules prevent staging the reviewed files, push stops; fix those rules and review again. There is no scheduling, automatic merge or full host backup.
+1. Under **Push to GitHub**, choose the destination branch. For a simple backup, choose `main` so the files appear on your repository's default page. The panel initially suggests a separate `ha/updates` branch; if you use it, switch GitHub's branch selector to `ha/updates` to see those files.
+2. Leave the commit message at its default, or enter a short description such as `First Home Assistant backup`.
+3. Select **Review and push**. If asked about unsaved file selections, confirm to save them first.
+4. Inspect the filenames and differences. **Deleted** means that a managed file will be removed from this GitHub branch, not from HA.
+5. Select **Confirm push** and wait until it completes.
+6. Open your backup repository on GitHub. Select the same branch you pushed to and confirm your files, and the optional dashboard export, are listed.
 
-## Updates
+Existing GitHub files outside your selected scope are preserved. No new commit is needed for unchanged files. An upload does not automatically create or merge a GitHub pull request.
 
-For store installations, use **Update** when offered. Keep add-on data and its deploy key.
+## Restore files or a dashboard from GitHub
 
-For local installations, stop the add-on and update its code:
+Import changes your live HA configuration. Start with a trusted repository and review the changes.
 
-```sh
-git -C /share/ha-git-sync-source pull --ff-only origin main
-cp -R /share/ha-git-sync-source/ha_git_sync/. /addons/ha_git_sync/
-ha store reload
-```
+1. Under **Import from GitHub**, select the branch containing the version you want.
+2. Leave **Also delete local files missing from the branch** off unless you deliberately want those local files deleted.
+3. Select **Review and import** and inspect every change.
+4. Select **Back up and import**. The add-on waits for a Home Assistant backup, saves a local recovery point, updates the selected content and validates the configuration.
+5. After ordinary file changes, select **Validate and restart HA** when ready. UI-dashboard changes take effect immediately.
 
-Select **Update** if offered, otherwise **Rebuild**, then start. Do not uninstall to update. Reload the panel if old UI text remains.
+A preview expires after 15 minutes. If files, the dashboard or the GitHub branch change after previewing, review again. Avoid editing the affected content during import. Failed applying/validation triggers recovery; **Restore last update** restores the affected originals and overwrites later edits to them.
 
-## Scope and security
+The HA backup includes HA's database and internal settings, but excludes other apps/add-ons and the host OS. It is separate from the selected files uploaded to GitHub.
 
-Custom selections accept supported YAML/YML, JSON, text, Markdown, CSV, Python, shell scripts, Jinja, XML, INI/CONF, JavaScript/CSS, SVG, images and web fonts. Limits: 10 MB per file, 64 MB total.
+## Update through Home Assistant
 
-Protected paths cannot be selected: hidden paths (including `.storage`), names containing `secret`, databases, logs, certificates/private-key file types, `custom_components`, `www/community`, `zigbee2mqtt`, `known_devices.yaml` and `ip_bans.yaml`. Symbolic links are rejected. Unselected GitHub files are preserved.
+Updates use the **same app/add-on store you installed from**. The store checks the version published by this source repository; you do not need to download files, copy directories, run Git commands or add it to HACS.
 
-Secret scanning is a heuristic, not a guarantee. Review contents and use a private repository. Deselecting a secret does not remove previously uploaded secrets from Git history. Import only trusted configuration because it may contain executable commands.
+1. When Home Assistant offers a **HA Git Sync** update, open the add-on and read its **Changelog**.
+2. Create a backup when prompted, or create one in **Settings → System → Backups** first.
+3. Select **Update** and wait for the build/installation to finish. Start the add-on again if it is stopped.
+4. Reopen or reload the Git Sync panel.
+5. Confirm the repository, saved selections and dashboard mapping are still correct. Your generated SSH key stays in the add-on's persistent data; you normally do not add a new deploy key.
 
-Only HA ingress exposes the panel; there is no external port. The internal ingress peer address is a Supervisor convention, not a user's HA instance address. Mutating requests require a CSRF token and only one operation runs at a time. Supervisor admin access supports backup, checks and restart. The Supervisor token is excluded from Git/SSH subprocesses.
+If an announced update is missing, refresh/check for updates in the app/add-on store and confirm this source repository is still listed under **Repositories**. Updates appear after the maintainer publishes a higher version to the store's source branch. Do not uninstall and reinstall to update; uninstalling can remove persistent data.
 
-## Development
+Updating the add-on changes its program. **Import from GitHub** changes your selected HA files/dashboard. These are different operations.
 
-Run backend tests on Linux, the add-on runtime:
+## Troubleshooting
 
-```sh
-python -m pip install -r requirements-dev.txt -r ha_git_sync/requirements.txt
-python -m unittest discover -s ha_git_sync/tests -v
-node --test ha_git_sync/tests/test_frontend.cjs
-docker build -t ha-git-sync:local ha_git_sync
-```
+| What you see | What to check |
+| --- | --- |
+| Source repository cannot be added, or HA Git Sync is missing from the store | Recheck the source URL from step 2, refresh the store and check HA's Supervisor logs. The source must be publicly accessible. |
+| No app/add-on store | This add-on requires HA OS/Supervisor. It cannot be installed through HACS on standalone Core or Container. |
+| Add-on stops immediately | Save your actual `owner/repository` in Configuration, then start again. Check the add-on's Log tab. |
+| Test connection fails | Add the entire generated key to your backup repository's Deploy keys, enable write access and check internet/SSH access. |
+| Base branch is missing | Confirm you enabled Add README when creating the repository; check its actual branch name. |
+| GitHub appears unchanged after push | Select the branch you pushed to in GitHub's branch selector. |
+| No editable dashboard is listed | Create a dashboard from scratch in HA, or use one whose cards/views you manage manually; then reload the list. YAML-file dashboards use ordinary file selection. |
+| Dashboard file missing during import | Push/export it first, or select a branch where the chosen Git file exists. |
+| Invalid YAML or suspected secrets | Review the reported file locally; move credentials to `secrets.yaml` and reference them with `!secret`. |
+| Backup fails | Active files are not updated. Resolve the HA backup problem before retrying. |
+| Interrupted import | Restart the add-on and use Restore last update. If Core/ingress is unavailable, use HA's normal backup recovery tools. Keep add-on data until recovery is complete. |
 
-Tests use temporary local Git repositories and a simulated Supervisor/dashboard. Verify real ingress, language detection, backup and API permissions on a test HA installation before production use.
+## What is excluded
+
+Hidden paths, `.storage`, secrets, databases, logs, private-key/certificate file types, `custom_components`, HACS-managed `www/community`, `zigbee2mqtt`, `known_devices.yaml` and `ip_bans.yaml` cannot be selected. Symbolic links are rejected. Limits are 10 MB per file and 64 MB total.
+
+Secret scanning cannot guarantee that every credential is found. Review contents before uploading and use a private backup repository. Removing a secret from a current selection does not erase earlier GitHub history.
+
+## Further help
+
+- [Home Assistant: installing a third-party app repository](https://www.home-assistant.io/common-tasks/os/#installing-a-third-party-app-repository)
+- [GitHub: deploy key settings](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys)
+- [Home Assistant: creating and editing dashboards](https://www.home-assistant.io/dashboards/dashboards/)

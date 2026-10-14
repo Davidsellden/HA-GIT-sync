@@ -1,5 +1,12 @@
 # syntax=docker/dockerfile:1
 FROM python:3.13-slim-bookworm
+ARG BUILD_VERSION=dev
+ARG BUILD_ARCH=amd64
+LABEL io.hass.name="HA Git Sync" \
+    io.hass.description="Review, back up and sync selected Home Assistant files with GitHub." \
+    io.hass.version="${BUILD_VERSION}" \
+    io.hass.type="app" \
+    io.hass.arch="${BUILD_ARCH}"
 RUN --mount=type=secret,id=proxy_ca \
     apt_safe() { if [ -f /run/secrets/proxy_ca ]; then apt-get -o Acquire::https::CaInfo=/run/secrets/proxy_ca "$@"; else apt-get "$@"; fi; }; \
     apt_safe update \
