@@ -57,7 +57,8 @@ async function status() {
   $("rollback").textContent = state.rollback ? t(`Senaste återställningspunkt: ${state.rollback.branch}, ${state.rollback.commit.slice(0,8)}. Backup: ${state.rollback.backup}.`, `Last recovery point: ${state.rollback.branch}, ${state.rollback.commit.slice(0,8)}. Backup: ${state.rollback.backup}.`) : "";
   if (state.last_result) {
     const r = state.last_result;
-    $("result").textContent = `${r.operation}${r.branch ? " · " + r.branch : ""}${r.commit ? " · " + r.commit.slice(0,8) : ""}`;
+    const operation = r.operation === "pull" ? t("inläsning", "import") : r.operation === "restore" ? t("återställning", "restore") : r.operation;
+    $("result").textContent = `${operation}${r.branch ? " · " + r.branch : ""}${r.commit ? " · " + r.commit.slice(0,8) : ""}`;
   }
   return state;
 }
@@ -150,7 +151,7 @@ async function preview(mode) {
   $("diffs").replaceChildren(...result.changes.map(change => {
     const detail = document.createElement("details"), summary = document.createElement("summary"), text = document.createElement("pre");
     summary.textContent = t("Visa skillnad: ", "Show diff: ") + change.path;
-    text.textContent = translateBackend(change.diff) || t("Binär eller stor fil. Skillnaden visas enbart i fillistan.", "Binary or large file. Changes are only shown in the file list.");
+    text.textContent = translatedDiff(change.diff) || t("Binär eller stor fil. Skillnaden visas enbart i fillistan.", "Binary or large file. Changes are only shown in the file list.");
     detail.append(summary, text); return detail;
   }));
   $("preview-note").textContent = !result.changes.length ? result.new_branch ? t("Skapar en ny branch utan nya filändringar.", "Creates a new branch without file changes.") : t("Inga ändringar behövs.", "No changes needed.") : mode === "pull" ? t("Filer markerade ”tas bort” raderas från HA. En backup och lokal återställningspunkt skapas före ändringen. Granskningen gäller i 15 minuter.", "Files marked “deleted” are removed from HA. A backup and local recovery point are created first. The preview is valid for 15 minutes.") : t("Ändringarna sparas i vald GitHub-branch. Granskningen gäller i 15 minuter.", "Changes are saved to the selected GitHub branch. The preview is valid for 15 minutes.");
@@ -178,8 +179,8 @@ bind("list-dashboards", async () => {
   const result = await job("dashboards");
   const previous = $("dashboard-target").value;
   const dashboards = result.filter(d => d.mode === "storage");
-  if (!result.some(d => d.url_path === "lovelace")) dashboards.unshift({title:t("Standarddashboard", "Default dashboard"), url_path:"lovelace"});
-  $("dashboard-target").replaceChildren(...dashboards.map(d => { const el = document.createElement("option"); el.value = d.url_path; el.textContent = `${d.title} (${d.url_path})`; return el; }));
+  if (!result.some(d => d.url_path === "lovelace")) dashboards.unshift({title:t("Standarddashboard", "Default dashboard"), url_path:"lovelace", defaultDashboard:true});
+  $("dashboard-target").replaceChildren(...dashboards.map(d => { const el = document.createElement("option"); el.value = d.url_path; el.textContent = `${d.title} (${d.url_path})`; if (d.defaultDashboard) el.dataset.defaultDashboard = "1"; return el; }));
   if (dashboards.some(d => d.url_path === previous)) $("dashboard-target").value = previous;
   $("dashboard-list").textContent = dashboards.length ? t("Listan visar dashboarder som redigeras i HA:s gränssnitt.", "The list shows dashboards edited in the HA interface.") : t("Inga redigerbara dashboarder hittades.", "No editable dashboards found.");
   $("dashboard-list").hidden = false;

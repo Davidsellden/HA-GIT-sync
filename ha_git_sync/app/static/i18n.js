@@ -3,6 +3,7 @@ const translations = new Map();
 let language = "en";
 let languagePreference = "auto";
 try { languagePreference = localStorage.getItem("ha-git-sync-language") || "auto"; } catch {}
+if (!["auto", "sv", "en"].includes(languagePreference)) languagePreference = "auto";
 function haLanguage() {
   try {
     let frame = window;
@@ -60,6 +61,9 @@ function refreshLanguage() {
   }
   for (const option of $("pull-branch").options) {
     if (!option.value) option.textContent = t("Inga brancher hittades", "No branches found");
+  }
+  for (const option of $("dashboard-target").options) {
+    if (option.dataset.defaultDashboard) option.textContent = t("Standarddashboard (lovelace)", "Default dashboard (lovelace)");
   }
   $("dashboard-list").hidden = true;
   status().catch(err => error(err.message));
@@ -203,6 +207,13 @@ translations.set("GitHubs SSH-fingeravtryck stämmer inte. Anslutningen stoppade
 translations.set("Hämtar GitHub-brancher", "Loading GitHub branches");
 translations.set("GitHub anslutet", "Connected to GitHub");
 translations.set("Ogiltigt branchnamn.", "Invalid branch name.");
+function translatedDiff(diff) {
+  if (!diff || language === "sv") return diff;
+  const message = translateBackend(diff);
+  if (message !== diff) return message;
+  return diff.replace(/^--- före\//, "--- before/").replace(/\n\+\+\+ efter\//, "\n+++ after/")
+    .replace(/\n… skillnaden är förkortad\.$/, "\n… diff truncated.");
+}
 translations.set("Dashboardfilen måste vara en säker, relativ YAML-sökväg under dashboards/.", "The dashboard file must be a safe relative YAML path under dashboards/.");
 translations.set("Välj en giltig dashboard och synkningsinställning.", "Select a valid dashboard and sync setting.");
 translations.set("Dashboarden finns inte. Hämta dashboardlistan på nytt.", "Dashboard not found. Reload the dashboard list.");

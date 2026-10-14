@@ -10,6 +10,6 @@ Review, back up and sync selected Home Assistant files with your own GitHub repo
 
 **Requirements:** Home Assistant OS with Supervisor, amd64 or aarch64, and an initialized GitHub repository. Existing Supervised installations with a working Supervisor may also run the add-on. Container and standalone Core are not supported.
 
-[Installation and usage](ha_git_sync/README.md) · [Changelog](ha_git_sync/CHANGELOG.md) · [Design notes](ha_git_sync/COMPARISON.md)
+[Installation and usage](ha_git_sync/DOCS.md) · [Changelog](ha_git_sync/CHANGELOG.md) · [Design notes](ha_git_sync/COMPARISON.md)
 
 This project contains add-on code and synthetic tests, with no bundled HA configuration, credentials, private instance addresses or preconfigured sync destination. Metadata URLs identify this project's source repository. Configure your own destination before starting.

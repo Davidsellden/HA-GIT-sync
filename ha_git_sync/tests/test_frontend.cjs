@@ -102,6 +102,14 @@ test("manual language overrides HA; automatic follows changes", () => {
   const p = panel({ha:"sv"});
   p.run('window.parent.document.querySelector = () => ({hass:{language:"fr"}})');
   assert.equal(p.run("resolveLanguage()"), "en");
+  assert.equal(panel({ha:"sv",stored:"invalid"}).run("language"), "sv");
+});
+test("English diffs translate generated labels without changing file contents", () => {
+  const p = panel();
+  p.context.diff = "--- före/kök.yaml\n+++ efter/kök.yaml\n@@ -1 +1 @@\n-Redo\n+Granskning klar\n… skillnaden är förkortad.";
+  assert.equal(p.run("translatedDiff(diff)"), "--- before/kök.yaml\n+++ after/kök.yaml\n@@ -1 +1 @@\n-Redo\n+Granskning klar\n… diff truncated.");
+  p.run('language = "sv"');
+  assert.equal(p.run("translatedDiff(diff)"), p.context.diff);
 });
 test("status/errors/actions translate while filenames are preserved", () => {
   const p = panel();
