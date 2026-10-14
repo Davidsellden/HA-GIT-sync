@@ -1,0 +1,43 @@
+name: HA Git Sync
+version: "0.4.1"
+slug: ha_git_sync
+description: Granska, säkerhetskopiera och synka HA-konfiguration med GitHub.
+url: https://github.com/Davidsellden/HA-GIT-sync/tree/main/ha_git_sync
+arch:
+  - amd64
+  - aarch64
+startup: services
+boot: auto
+init: true
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:source-branch
+panel_title: Git Sync
+panel_admin: true
+homeassistant_api: true
+hassio_api: true
+hassio_role: admin
+map:
+  - type: homeassistant_config
+    read_only: false
+    path: /config
+options:
+  repository: ""
+  default_branch: main
+  push_branch: ha/updates
+  git_name: Home Assistant
+  git_email: homeassistant@example.com
+  dashboard_sync: false
+  dashboard_url_path: lovelace
+  dashboard_file: ""
+  snapshot_retention: 3
+schema:
+  repository: str
+  default_branch: str
+  push_branch: str
+  git_name: str
+  git_email: email
+  dashboard_sync: bool
+  dashboard_url_path: str
+  dashboard_file: str?
+  snapshot_retention: int(1,20)

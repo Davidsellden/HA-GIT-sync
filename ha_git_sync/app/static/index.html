@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>HA Git Sync</title>
+  <link rel="stylesheet" href="static/style.css">
+  <script src="static/app.js" defer></script>
+</head>
+<body>
+<main>
+  <header><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M6 7.5v9M18 7.5v2c0 4-12 1-12 6"/></svg></div><div><p class="eyebrow">HOME ASSISTANT</p><h1>Git Sync</h1><p id="repository">Din konfiguration, versionshanterad.</p></div><span class="badge" id="badge">Redo</span></header>
+  <section class="status" aria-live="polite"><span class="dot"></span><div><strong id="phase">Ansluter till tillägget…</strong><p id="result"></p></div></section>
+  <p class="error" id="error" role="alert" hidden></p>
+
+  <section class="card" id="setup" hidden>
+    <p class="eyebrow">ANSLUT GITHUB</p><h2>En egen nyckel för tillägget</h2>
+    <p>Skapa en SSH-nyckel och lägg den publika nyckeln som <strong>Deploy key</strong> med <strong>Allow write access</strong> i ditt privata GitHub-repo.</p>
+    <button id="key">Skapa SSH-nyckel</button>
+    <textarea id="public-key" rows="3" readonly aria-label="Publik SSH-nyckel" hidden></textarea>
+    <div class="actions"><button class="secondary" id="copy-key" hidden>Kopiera nyckel</button><a id="keys-link" target="_blank" rel="noopener noreferrer">Öppna deploy keys ↗</a><button class="secondary" id="connect">Testa anslutning</button></div>
+  </section>
+
+  <div class="grid">
+    <section class="card"><div class="direction" aria-hidden="true">HA → GitHub</div><h2>Pusha till GitHub</h2><p>Spara de aktuella HA-filerna som en ny commit. Granska ändringarna först.</p>
+      <label for="push-branch">Branch att pusha till</label><select id="push-branch"><option value="">Hämta branchlistan först</option></select>
+      <div id="new-branch-fields" hidden><label for="new-branch">Namn på ny branch</label><input id="new-branch" value="ha/updates" autocomplete="off" spellcheck="false"><p class="muted" id="branch-base"></p></div>
+      <label for="message">Commit-meddelande</label><input id="message" value="Update Home Assistant configuration" maxlength="500">
+      <button class="primary" id="push">Granska och pusha</button>
+    </section>
+    <section class="card"><div class="direction" aria-hidden="true">GitHub → HA</div><h2>Läs in från GitHub</h2><p>Ta en HA-backup, uppdatera filerna och kontrollera konfigurationen.</p>
+      <label for="pull-branch">Branch att läsa in</label><select id="pull-branch"><option value="">Hämta branchlistan först</option></select>
+      <label class="check"><input type="checkbox" id="allow-deletions"> Ta även bort lokala filer som saknas i branchen</label>
+      <div class="note">Inläsningen körs mot en bestämd commit. Om kontrollen misslyckas återställs originalen.</div>
+      <button class="primary" id="pull">Granska och läs in</button>
+    </section>
+  </div>
+  <section class="card" id="preview" hidden>
+    <p class="eyebrow">FÖRHANDSGRANSKNING</p><h2 id="preview-title"></h2><p id="preview-meta"></p>
+    <div class="table-wrap"><table><thead><tr><th>Fil</th><th>Ändring</th></tr></thead><tbody id="changes"></tbody></table></div><div id="diffs"></div>
+    <p id="preview-note"></p><div class="actions"><button class="primary" id="confirm">Bekräfta</button><button class="secondary" id="cancel">Avbryt</button></div>
+  </section>
+  <section class="card"><p class="eyebrow">EFTER EN UPPDATERING</p><h2>Aktivera eller återställ</h2><p>En godkänd filuppdatering startar inte om HA automatiskt. Dashboardändringar aktiveras direkt via API:t.</p>
+    <div class="actions"><button class="secondary" id="restart">Kontrollera och starta om HA</button><button class="secondary" id="restore" disabled>Återställ senaste uppdateringen</button></div><p id="rollback"></p>
+  </section>
+  <section class="card"><p class="eyebrow">DITT FILURVAL</p><h2>Välj filer och mappar</h2>
+    <p>Bocka i enstaka filer eller hela mappar. Ett mappval omfattar även framtida tillåtna filer. Samma urval används för push och inläsning.</p>
+    <button class="secondary" id="load-files">Visa mina filer och mappar</button>
+    <div id="file-picker" hidden><label for="file-search">Sök bland filer</label><input id="file-search" placeholder="Exempel: huset.yaml"><div id="file-list" class="file-list"></div>
+      <label for="extra-paths">Extra sökvägar, även filer som ännu bara finns i GitHub</label><textarea id="extra-paths" rows="2" placeholder="huset.yaml&#10;egna-paket/"></textarea>
+      <label for="exclude-paths">Egna undantag, en fil eller mapp per rad</label><textarea id="exclude-paths" rows="2" placeholder="egna-paket/test.yaml"></textarea>
+      <button class="primary" id="save-files">Spara filurval</button>
+    </div><p class="muted">Secrets, dolda kataloger, databaser, loggar, HACS och Zigbee2MQTT kan inte väljas. Mappar anges med / på slutet.</p><p id="scope-summary"></p>
+  </section>
+  <section class="card"><p class="eyebrow">VALFRI DASHBOARD</p><h2>Välj dashboard och Git-fil</h2>
+    <p>Synka en dashboard som du redigerar i Home Assistants gränssnitt. Du väljer själv filnamnet i GitHub.</p>
+    <label class="check"><input type="checkbox" id="dashboard-enabled"> Synka den valda dashboarden</label>
+    <label for="dashboard-target">Dashboard i Home Assistant</label><select id="dashboard-target"></select>
+    <button class="text-button" id="list-dashboards">Hämta dashboarder</button><p class="muted" id="dashboard-list" hidden></p>
+    <label for="dashboard-file">YAML-fil i Git-repot</label><input id="dashboard-file" placeholder="dashboards/overview.yaml" autocomplete="off" spellcheck="false">
+    <p class="muted">Välj ett eget filnamn under dashboards/. Vid push skapas filen om den saknas. Vid inläsning måste filen finnas i vald branch.</p>
+    <button class="secondary" id="save-dashboard">Spara dashboardval</button><p id="dashboard"></p>
+  </section>
+  <section class="card compact"><h2>Vad synkas?</h2><p>Ditt sparade filurval och eventuell vald dashboard. Filer utanför urvalet i GitHub bevaras.</p><p class="muted">Secrets, .storage, databaser, HACS-filer och Zigbee2MQTT ingår inte. Backupen omfattar Home Assistant, inklusive dess databas och interna inställningar, men inte andra tillägg.</p></section>
+  <footer>HA Git Sync · 0.4.1 <button class="text-button" id="refresh">Uppdatera branchlistan</button></footer>
+</main>
+</body></html>
