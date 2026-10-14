@@ -14,7 +14,7 @@ import threading
 import time
 import uuid
 
-from files import (DEFAULT_DASHBOARD_FILE, LEGACY_DASHBOARD_FILE, Scope, SyncError, atomic_write, canonical_yaml, changes, dashboard_bytes, eligible,
+from files import (DEFAULT_DASHBOARD_FILE, Scope, SyncError, atomic_write, canonical_yaml, changes, dashboard_bytes, eligible,
                    digest, inventory, parse_dashboard, read_file, safe_path,
                    scan_secrets, text_diff, validate_yaml)
 from ha import HomeAssistant
@@ -44,8 +44,7 @@ class Engine:
                 raise SyncError("Dashboardinställningarna kan inte läsas. Kontrollera tilläggets data.") from err
         default_file = self.data / "dashboard_default.txt"
         if not default_file.exists():
-            legacy = (self.data / "repository.git").exists()
-            atomic_write(default_file, (LEGACY_DASHBOARD_FILE if legacy else DEFAULT_DASHBOARD_FILE).encode())
+            atomic_write(default_file, DEFAULT_DASHBOARD_FILE.encode())
         self.dashboard_file = self.validate_dashboard_file(self.options.get("dashboard_file") or default_file.read_text())
         repository = self.options.get("repository", "")
         if allow_local:
@@ -418,7 +417,7 @@ class Engine:
             "dashboard_path": self.options.get("dashboard_url_path", "lovelace")}
         for change in plan["changes"]:
             name = change["path"]
-            if name == self.dashboard_file:
+            if self.dashboard_sync and name == self.dashboard_file:
                 continue
             path = safe_path(self.config_root, name)
             exists = path.exists()
@@ -452,7 +451,7 @@ class Engine:
                 self.set_state(phase="Läser in filer från GitHub")
                 for change in plan["changes"]:
                     name = change["path"]
-                    if name == self.dashboard_file:
+                    if self.dashboard_sync and name == self.dashboard_file:
                         continue
                     path = safe_path(self.config_root, name)
                     if name in plan["desired"]:

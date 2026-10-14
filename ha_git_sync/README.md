@@ -1,177 +1,141 @@
 # HA Git Sync
 
-Två flöden i en HA-panel: **Pusha till GitHub** och **Läs in från GitHub**.
-Varje operation börjar med en förhandsgranskning av nya, ändrade och borttagna filer.
+Sync selected Home Assistant files with **your own GitHub repository**, with a preview before every push or import. Git runs in an isolated working copy outside the active HA configuration.
 
-Det här är ett lokalt Home Assistant OS-tillägg för amd64/aarch64. Det kör Git i en
-egen arbetskopia och kommer aldrig åt Proxmox-värden. Det kräver skrivåtkomst till
-HA:s konfiguration och Supervisor-adminåtkomst för backup, kontroll och omstart.
+## Requirements
+
+- Home Assistant OS with Supervisor on `amd64` or `aarch64`, an administrator account and access to the add-on store.
+- A GitHub repository you can manage. Use a private repository for HA configuration.
+- At least one commit on its base branch. Select **Add a README file** when creating it.
+- Outbound GitHub SSH access (port 22) and internet access for building the add-on.
+
+Existing Supervised installations may work if their Supervisor provides add-on, backup and Core APIs. Container and standalone Core lack these services and are not supported. No particular hostname, instance IP, VM platform, dashboard name or personal configuration is required.
 
 ## Installation
 
-För ett publikt repo: öppna **Inställningar → Tillägg → Tilläggsbutik → ⋮ →
-Repositories** och lägg till `https://github.com/Davidsellden/HA-GIT-sync`.
-Installera sedan **HA Git Sync**. Repot är för närvarande privat; använd då lokal
-installation enligt nedan.
+1. In HA, open **Settings → Add-ons → Add-on store** (called **Apps** in newer versions).
+2. Open **⋮ → Repositories**, add `https://github.com/Davidsellden/HA-GIT-sync`, then refresh the store.
+3. Find **HA Git Sync** and select **Install**. The first build can take several minutes.
+4. Before starting, open **Configuration** and set `repository` to **your configuration repository** in `owner/repo` form. Do not enter a URL or `.git` suffix. Set `default_branch` to its existing base branch, usually `main`.
+5. Save, start the add-on, enable **Show in sidebar** if desired and open its web interface.
+6. Complete the GitHub connection below.
 
-### Lokal installation från ett privat repo
+The source repository must be public for other users to add it directly to the store. If private or inaccessible, an authorized user can install a local copy. The source and your configuration destination are separate repositories.
 
-Klona repot i Advanced SSH & Web Terminal med ett GitHub-konto/SSH-nyckel som har
-läsåtkomst. Kontrollera att `/addons` är HA:s monterade tilläggskatalog.
+### Local installation
+
+Copy this project's `ha_git_sync` directory into HA's `/addons/ha_git_sync`. In an HA terminal with Git and access to `/addons`, for example:
 
 ```sh
-git clone git@github.com:Davidsellden/HA-GIT-sync.git /share/ha-git-sync-source
+git clone https://github.com/Davidsellden/HA-GIT-sync.git /share/ha-git-sync-source
 cp -R /share/ha-git-sync-source/ha_git_sync /addons/ha_git_sync
 ha store reload
 ```
 
-Om `/addons/ha_git_sync` redan finns, använd uppdateringsinstruktionen nedan.
-Installera via **Tilläggsbutik → Lokala tillägg → HA Git Sync**.
-Ange ditt eget `repository` som `ägare/repo` och din `git_email` i tilläggets
-konfiguration **innan du startar det**. Aktivera **Visa i sidofältet** och öppna
-webbgränssnittet. Ingen privat HA-konfiguration ingår i det här kodrepot.
+For private source access, use a separately authorized GitHub clone method. Terminal credentials are not used by the add-on. If the destination directory already exists, use the update instructions instead. Install via **Local add-ons → HA Git Sync**, configure your destination, then start.
 
-### Anslut GitHub
+## Connect GitHub
 
-1. Tryck **Skapa SSH-nyckel** i panelen.
-2. Kopiera den publika nyckeln till repots **Settings → Deploy keys → Add deploy key**.
-3. Välj **Allow write access** och spara.
-4. Tryck **Testa anslutning**. Branchlistan hämtas.
+1. Select **Create SSH key** in the panel.
+2. Select **Copy key**, then **Open deploy keys**, or visit your destination repository's **Settings → Deploy keys → Add deploy key**.
+3. Paste the public key, give it a descriptive title, enable **Allow write access** and save.
+4. Return to the panel and select **Test connection**. The branch list should load.
 
-Tillägget får en egen nyckel i `/data/ssh`. Det använder inte SSH-terminalens
-privata nyckel. GitHubs Ed25519-hostnyckel kontrolleras mot dess publicerade
-fingeravtryck innan den accepteras. Nyckeln skickas aldrig till Git-repot.
+Each installation generates its own key. The private key stays in persistent `/data/ssh` and is never committed. GitHub's host key is verified against its published Ed25519 fingerprint. A deploy key grants access only to the repository where you add it.
 
-## Konfiguration
+## Configuration
 
 ```yaml
-repository: ditt-anvandarnamn/ditt-ha-repo
+repository: your-account/your-ha-config
 default_branch: main
 push_branch: ha/updates
 git_name: Home Assistant
 git_email: homeassistant@example.com
 dashboard_sync: false
 dashboard_url_path: lovelace
-dashboard_file: dashboards/overview.yaml
+dashboard_file: dashboards/dashboard.yaml
 snapshot_retention: 3
 ```
 
-`default_branch` är källbranch när en ny push-branch skapas. `push_branch` är
-panelens förval; du kan välja en annan branch, inklusive `main`, uttryckligen.
-Restart krävs när tilläggets alternativ ändras.
+| Option | Meaning |
+| --- | --- |
+| `repository` | Required destination GitHub repository, `owner/repo`. |
+| `default_branch` | Existing base branch for new push branches. |
+| `push_branch` | Suggested destination branch; change it in the panel. |
+| `git_name`, `git_email` | Commit author identity. Set your own identity if desired. |
+| `dashboard_sync` | Optional dashboard export/import, off by default. |
+| `dashboard_url_path` | Dashboard URL path; `lovelace` means the default dashboard. |
+| `dashboard_file` | Relative YAML path under `dashboards/`; empty uses `dashboards/dashboard.yaml`. |
+| `snapshot_retention` | Local snapshots retained, 1–20; the active recovery point is protected. |
 
-### Dashboard som redigeras i HA:s gränssnitt
+Restart after changing add-on options. File selections and dashboard settings saved in the panel persist immediately. Panel-saved dashboard settings override add-on options. Explicitly saved filenames remain intact; new installations never infer a personal dashboard filename.
 
-I panelen, välj **Hämta dashboarder** och välj dashboard i rullistan. Ange en egen
-Git-fil, exempelvis `dashboards/overview.yaml`, `dashboards/kitchen.yaml` eller
-`dashboards/rooms/upstairs.yml`. Aktivera synkning och välj **Spara dashboardval**.
-Det behövs ingen omstart och inga konfigurationsfiler i HA ändras av detta val.
-Panelens sparade dashboardval har företräde framför tilläggets dashboardalternativ.
+## Language
 
-Tillägget exporterar den valda dashboarden till din valda Git-fil vid push.
-Vid inläsning används HA:s `lovelace/config/save`-API. Dashboarden måste redan
-finnas och vara redigerbar i storage-läge; tillägget skapar inte dashboarder och
-skriver inte direkt i `.storage`. Dashboardresurser/HACS-kort synkas inte.
+The panel defaults to **Automatic (Home Assistant)** and reads the current user's HA frontend language. Swedish (`sv`) uses Swedish; all other languages use English. If HA's language is unavailable, English is used. An open panel follows changes to the HA language.
 
-Om dashboard-synkning är avstängd lämnas dashboarden och GitHub-filen orörda.
-Nya installationer föreslår `dashboards/dashboard.yaml`. Vid uppgradering av en
-befintlig installation bevaras den tidigare `dashboards/hemma.yaml`-kopplingen
-om ingen explicit fil valts. Ingen fil flyttas eller döps om automatiskt.
-Synkning omfattar en vald dashboard; flera samtidiga dashboardkopplingar ingår
-inte ännu. YAML-dashboarder som HA läser från disk visas inte som redigerbara val.
+Choose **Language → Svenska / English / Automatic (Home Assistant)** to override or restore automatic selection. The choice is remembered in this browser. Changing language closes an existing preview; review again before syncing. This guide is in English.
 
-## Pusha
+## Select files and folders
 
-### Välj egna filer och mappar
+1. Select **Show my files and folders**.
+2. Select individual files or entire folders. Folders include future eligible files.
+3. Optionally add **Extra paths** for files currently only in GitHub or **Custom exclusions** for files/folders to skip.
+4. Select **Save file selection**.
 
-I panelen: **Visa mina filer och mappar**. Bocka i exempelvis `huset.yaml` eller
-en hel mapp, och välj **Spara filurval**. Mappval omfattar även nya tillåtna filer
-som senare läggs i mappen. Filer som ingår via ett mappval visas markerade och
-kan inte ändras separat; välj bort mappen för att välja dess filer enskilt, eller
-ange en specifik fil under **Egna undantag**.
+Enter one path per line relative to `/config`; end folder paths with `/`. Absolute paths and glob patterns are unsupported. Files inherited from a selected folder are checked automatically. Exclude a file explicitly or deselect its parent folder to select files individually.
 
-Du kan söka bland filerna. Skyddade poster visas nedtonade och deras innehåll
-listas inte. **Extra sökvägar** kan användas för filer som ännu bara finns i
-GitHub. Ange en sökväg per rad relativt `/config`, och avsluta mappnamn med `/`.
-Inga globmönster eller absoluta sökvägar används.
+The saved scope applies to both push and import. Deselecting a file does not delete it on either side. Unsaved checkbox, extra-path or exclusion changes trigger a **save-before-preview** question at the next push or import. Confirming saves first; canceling returns to editing without syncing. A failed save stops the operation. Reloading the file list also asks before discarding unsaved changes.
 
-Urvalet gäller både push och inläsning och sparas i tilläggets beständiga data.
-Att välja bort en fil raderar den inte från HA eller GitHub; den slutar bara
-hanteras av tillägget. Gamla förhandsgranskningar måste göras om efter ett ändrat
-urval. HA:s aktiva konfiguration kontrolleras även om bara några filer valts.
-Om `configuration.yaml` är vald måste den finnas på den sida som läses in.
+Until a custom selection is saved, the default includes `configuration.yaml`, `automations.yaml`, `scripts.yaml`, `scenes.yaml`, YAML under `packages/`, `themes/`, `blueprints/`, and supported web assets under `www/`.
 
-Din gamla fasta fillista bevaras tills du sparar ett eget urval. Vid sparat
-mappval hanteras alla tillåtna filtyper i den mappen, med skyddade undantag.
-Dashboard-synkningen via API är separat; dess valda Git-fil hämtas från dashboarden
-även om en vanlig fil med samma namn finns i `/config`.
+## Push to GitHub
 
-1. Välj målbranch i rullistan, helst `ha/updates` under första testerna. Om den
-   saknas, välj **Skapa ny branch** och ange namnet.
-2. Skriv commit-meddelande och välj **Granska och pusha**.
-3. Granska filnamnen, särskilt borttagningar, och bekräfta.
+1. Choose a destination branch. For a first trial, select **Create new branch** and enter `ha/updates`. New branches start from `default_branch`.
+2. Enter a commit message and select **Review and push**. Save unsaved selection changes if prompted.
+3. Inspect every filename and diff, including deletions, then select **Confirm push**.
 
-HA:s nuvarande konfiguration kontrolleras före commit. En branch som inte finns
-skapas från `default_branch`. Git avvisar push om branchen har ändrats på GitHub
-sedan förhandsgranskningen; inget skrivs då över. Dokumentation, tester och
-tilläggskod bevaras. Vid oförändrat innehåll skapas ingen commit. YAML-radslut
-normaliseras till LF i Git-kopian; enbart olika radslut ger inga falska ändringar.
-Betydelsefulla avslutande radbrytningar i YAML-block bevaras.
+HA's active configuration is validated before committing. Unselected GitHub files remain untouched. Unchanged content creates no commit, although a requested new branch can be created. YAML line endings are normalized in the Git copy while preserving meaningful block-scalar trailing newlines.
 
-## Läs in
+If the GitHub branch moves after previewing, push is rejected; review again. There is no automatic merge. A preview expires after 15 minutes; local file or dashboard changes invalidate it.
 
-1. Välj branch i rullistan och välj **Granska och läs in**. Branchlistan kan
-   hämtas på nytt med **Uppdatera branchlistan**.
-2. Öppna filernas diffar för att granska innehållet. Lokala filer som saknas i
-   branchen bevaras som standard. Om du vill radera dem, markera **Ta även bort
-   lokala filer som saknas i branchen** före granskningen. **Filer markerade
-   ”tas bort” raderas från HA.**
-3. Välj **Säkerhetskopiera och läs in**.
+## Import from GitHub
 
-Förhandsgranskningen gäller i 15 minuter och låser uppdateringen till en bestämd
-commit. Om HA-filer eller dashboard ändras före applicering stoppas operationen.
-Undvik samtidiga redigeringar under själva uppdateringen; tillägget kan inte låsa
-HA:s andra redigerare eller automation editor.
+1. Choose the source branch and select **Review and import**.
+2. Inspect filenames and diffs. Missing local files are preserved by default. Enable **Also delete local files missing from the branch** before previewing only if you want them removed.
+3. Select **Back up and import**.
 
-Tillägget kontrollerar först nuvarande konfiguration, skapar en **HA-backup** och
-inväntar att Supervisor returnerar en färdig backup med HA-innehåll. Backupen
-omfattar HA inklusive `.storage`, secrets och databasen; **andra tillägg och
-Proxmox-VM:n ingår inte**. Den ska inte förväxlas med en fullständig systembackup.
-Backupen hanteras i HA:s backupvy och tas inte bort automatiskt av detta tillägg.
+Import validates the current configuration, waits for a completed Supervisor backup, saves a local recovery snapshot and persistent journal, updates files and validates HA again. The optional dashboard is updated through its API. If applying or validation fails, originals are restored. Each file is replaced atomically; the complete update is not one atomic operation. Avoid concurrent editing during import.
 
-Efter backupen sparas originalfilerna i tilläggets `/data/snapshots` och en
-beständig journal skrivs innan HA-filerna ändras. Varje fil byts atomiskt, men hela
-uppdateringen är inte en enda atomisk filsystemsoperation. Därefter körs
-Supervisor `/core/check`, motsvarande `ha core check`. Vid godkänd kontroll
-uppdateras eventuell dashboard via API. Ingen automatisk omstart sker.
+The backup includes **Home Assistant, secrets, internal settings and its database**. Other add-ons and the host OS are excluded. Supervisor manages these backups; the add-on does not delete them. Local recovery snapshots are stored separately in `/data/snapshots`.
 
-Tryck **Kontrollera och starta om HA** för att aktivera filändringarna. Dashboarden
-aktiveras direkt vid API-sparning. HA behöver köras på samma version som
-konfigurationen är avsedd för; kontrollerna simulerar inte uppgraderingar av HA.
+File changes do not restart HA automatically. Select **Validate and restart HA** when ready. Dashboard API changes take effect immediately. Use configuration appropriate for your installed HA version; validation does not simulate an upgrade.
 
-### Om något går fel
+## Optional dashboard sync
 
-- Misslyckad backup: inga aktiva filer ändras.
-- Ogiltig YAML: stoppas före backup. Fel vid HA-kontroll efter kopiering eller
-  dashboardimport: originalfiler och eventuell dashboard återställs.
-- Avbrott i tillägget under uppdatering: journalen upptäcks efter omstart, ny
-  synkning blockeras och **Återställ senaste uppdateringen** kan användas.
-- Manuell återställning skriver över senare ändringar i de berörda filerna och
-  dashboarden. Panelen påminner om detta före återställningen.
-- Om Core inte fungerar kan tillägget fortfarande återställa filerna, men
-  dashboardens API och konfigurationskontrollen kan vara otillgängliga. Återstarta
-  Core via Supervisor/terminal vid behov, eller återställ HA-backupen. Vid Core-fel
-  kan ingresspanelen också vara otillgänglig; då används HA:s återställningsväg.
+Select **Load dashboards**, choose an existing dashboard, enter a file such as `dashboards/overview.yaml`, enable sync and select **Save dashboard selection**. The dashboard must be editable in the HA UI (storage mode). The add-on does not create dashboards or write directly to `.storage`.
 
-Återställning startar inte om Core automatiskt. Avinstallera inte tillägget eller
-radera dess data innan en återställning är klar. `snapshot_retention` styr hur
-många lokala snapshots som bevaras (1–20, standard tre). Aktiv återställningspunkt
-skyddas alltid. Supervisor-backuper städas inte av tillägget.
+Push exports the chosen dashboard; import requires its Git file in the selected branch and uses `lovelace/config/save`. One dashboard can be mapped at a time. YAML dashboards on disk can instead be selected as ordinary files. API sync takes precedence over a disk file with the same path while enabled. When disabled, explicitly selected disk files are handled normally.
 
-## Uppdatera en lokal installation
+Dashboard resources and HACS cards are not synced; install required cards separately on the receiving installation.
 
-Stoppa tillägget via HA. Följande kommandon ersätter bara tilläggskoden, inte
-HA:s YAML, tilläggets inställningar eller dess beständiga data/SSH-nyckel:
+## Recovery and troubleshooting
+
+- **Connection fails:** check `owner/repo`, an initialized base branch, deploy-key write access and outbound SSH access.
+- **Source missing from the store:** confirm source visibility, refresh the store or use local installation.
+- **Invalid YAML or suspected secrets:** inspect reported files locally, move credentials into `secrets.yaml` and reference them with `!secret`.
+- **Backup fails:** active files remain unchanged.
+- **Interrupted import:** the journal blocks new sync operations after restart until recovery. Select **Restore last update**.
+- **Manual restore:** later changes to affected files and the mapped dashboard are overwritten; the panel asks first.
+- **Core or ingress unavailable:** use HA's normal backup recovery tools. Dashboard API and validation may be unavailable even when file recovery works. Do not uninstall or delete add-on data during recovery.
+
+Restore does not restart Core automatically. If Git ignore rules prevent staging the reviewed files, push stops; fix those rules and review again. There is no scheduling, automatic merge or full host backup.
+
+## Updates
+
+For store installations, use **Update** when offered. Keep add-on data and its deploy key.
+
+For local installations, stop the add-on and update its code:
 
 ```sh
 git -C /share/ha-git-sync-source pull --ff-only origin main
@@ -179,52 +143,27 @@ cp -R /share/ha-git-sync-source/ha_git_sync/. /addons/ha_git_sync/
 ha store reload
 ```
 
-Välj **Uppdatera** om HA erbjuder version 0.4.1, annars **Bygg om/Rebuild** för
-det lokala tillägget, och starta det. Avinstallera inte tillägget för att uppdatera.
-Om gamla textfält fortfarande visas: ladda om panelen/webbläsaren.
+Select **Update** if offered, otherwise **Rebuild**, then start. Do not uninstall to update. Reload the panel if old UI text remains.
 
-Se [kodjämförelsen](COMPARISON.md) för vad vi granskat i andra Git-lösningar.
+## Scope and security
 
-## Fillista och begränsningar
+Custom selections accept supported YAML/YML, JSON, text, Markdown, CSV, Python, shell scripts, Jinja, XML, INI/CONF, JavaScript/CSS, SVG, images and web fonts. Limits: 10 MB per file, 64 MB total.
 
-Det sparade urvalet kan omfatta egna YAML/YML, JSON, text, Markdown, CSV, Python,
-shellskript, Jinja-mallar, XML, INI/CONF, JavaScript/CSS, SVG, bilder och
-webbtypsnitt. Tillåtna filer i valda mappar hanteras rekursivt.
+Protected paths cannot be selected: hidden paths (including `.storage`), names containing `secret`, databases, logs, certificates/private-key file types, `custom_components`, `www/community`, `zigbee2mqtt`, `known_devices.yaml` and `ip_bans.yaml`. Symbolic links are rejected. Unselected GitHub files are preserved.
 
-Standardurvalet före ett eget sparat val är:
+Secret scanning is a heuristic, not a guarantee. Review contents and use a private repository. Deselecting a secret does not remove previously uploaded secrets from Git history. Import only trusted configuration because it may contain executable commands.
 
-- `configuration.yaml`, `automations.yaml`, `scripts.yaml`, `scenes.yaml`.
-- `.yaml`/`.yml` under `packages/`, `themes/`, `blueprints/`.
-- Egna `.svg`, `.css`, `.js`, bilder och webbtypsnitt under `www/`.
-- Valfri API-synkning av en vald dashboard till en egen `.yaml`/`.yml`-fil under `dashboards/`.
+Only HA ingress exposes the panel; there is no external port. The internal ingress peer address is a Supervisor convention, not a user's HA instance address. Mutating requests require a CSRF token and only one operation runs at a time. Supervisor admin access supports backup, checks and restart. The Supervisor token is excluded from Git/SSH subprocesses.
 
-Följande kan inte väljas, även via Extra sökvägar: `www/community`, dolda filer/kataloger, namn som innehåller `secret`, `.storage`,
-databaser, certifikat, privata nycklar, `custom_components` och `zigbee2mqtt`
-hanteras inte. `known_devices.yaml` och `ip_bans.yaml` är också skyddade. Symboliska länkar i hanterade sökvägar avvisas. Max 10 MB per fil
-och totalt 64 MB hanterade konfigurationsfiler.
+## Development
 
-Filer utanför fillistan som redan finns i GitHub bevaras; undantagslistan tar inte
-bort tidigare uppladdade hemligheter ur Git-historiken.
-
-YAML kontrolleras utan att lösa `!secret` eller `!include`. En enkel sökning efter
-känsliga nycklar och privata nyckelblock stoppar misstänkta filer och visar enbart
-filnamn. Det är ingen garanti att alla hemligheter hittas: granska innehållet före
-push och använd ett privat repo. GitHub-branchen bör vara betrodd eftersom
-HA-konfiguration kan innehålla körbara kommandon.
-
-Panelen är tillgänglig enbart via HA-ingress. Ingen extern port exponeras.
-POST-anrop kräver panelens CSRF-token, och endast en operation får köras åt gången.
-
-## Utveckling och tester
+Run backend tests on Linux, the add-on runtime:
 
 ```sh
-python -m pip install -r ha_git_sync/requirements.txt
+python -m pip install -r requirements-dev.txt -r ha_git_sync/requirements.txt
 python -m unittest discover -s ha_git_sync/tests -v
-python -m unittest discover -s tests -v
-python scripts/sync-theme-styles.py --check
+node --test ha_git_sync/tests/test_frontend.cjs
 docker build -t ha-git-sync:local ha_git_sync
 ```
 
-Integrationstesterna kör riktig Git mot tillfälliga lokala repon och en simulerad
-Supervisor/dashboard. Installation och API-behörigheter måste också provas i
-den riktiga HA-VM:n innan tillägget används för ordinarie uppdateringar.
+Tests use temporary local Git repositories and a simulated Supervisor/dashboard. Verify real ingress, language detection, backup and API permissions on a test HA installation before production use.

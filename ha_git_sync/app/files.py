@@ -21,7 +21,6 @@ ROOT_FILES = {"configuration.yaml", "automations.yaml", "scripts.yaml", "scenes.
 YAML_DIRS = {"packages", "themes", "blueprints"}
 ASSET_SUFFIXES = {".svg", ".css", ".js", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".woff", ".woff2"}
 DEFAULT_DASHBOARD_FILE = "dashboards/dashboard.yaml"
-LEGACY_DASHBOARD_FILE = "dashboards/hemma.yaml"
 MAX_FILE = 10 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 DEFAULT_INCLUDES = sorted(ROOT_FILES) + ["packages/", "themes/", "blueprints/", "www/"]

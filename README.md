@@ -1,17 +1,15 @@
 # HA Git Sync
 
-Granska, säkerhetskopiera och synka valda Home Assistant-filer med ditt eget GitHub-repo.
+Review, back up and sync selected Home Assistant files with your own GitHub repository.
 
-- Välj filer och mappar med kryssrutor.
-- Välj branch för push eller import.
-- Synka en dashboard via HA:s API.
-- Granska ändringar, ta HA-backup och kontrollera konfigurationen före import.
-- Återställ senaste import vid behov.
+- Select individual files or folders and preview changes before push/import.
+- Save unsaved file selections before continuing a sync.
+- Create an HA backup before import and restore the last update if needed.
+- Optionally sync one dashboard through the HA API.
+- Automatically use Swedish for a Swedish HA profile, otherwise English; override the language in the panel.
 
-För Home Assistant OS/Supervised med Supervisor, amd64 eller aarch64.
+**Requirements:** Home Assistant OS with Supervisor, amd64 or aarch64, and an initialized GitHub repository. Existing Supervised installations with a working Supervisor may also run the add-on. Container and standalone Core are not supported.
 
-[Installation, konfiguration och uppdatering](ha_git_sync/README.md) ·
-[Ändringslogg](ha_git_sync/CHANGELOG.md) · [Jämförelse med andra lösningar](ha_git_sync/COMPARISON.md)
+[Installation and usage](ha_git_sync/README.md) · [Changelog](ha_git_sync/CHANGELOG.md) · [Design notes](ha_git_sync/COMPARISON.md)
 
-Kodrepot innehåller inga personliga HA-filer. Ange ditt eget målrepo i tilläggets
-konfiguration före första starten. Detta repo är för närvarande privat.
+This project contains add-on code and synthetic tests, with no bundled HA configuration, credentials, private instance addresses or preconfigured sync destination. Metadata URLs identify this project's source repository. Configure your own destination before starting.

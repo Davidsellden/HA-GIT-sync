@@ -53,7 +53,7 @@ class FakeHA:
         self.config = copy.deepcopy(config)
 
     def dashboards(self):
-        return [{"title": "Hemma", "url_path": "lovelace", "mode": "storage"}]
+        return [{"title": "Overview", "url_path": "lovelace", "mode": "storage"}]
 
     def restart(self):
         self.restarts += 1
@@ -75,7 +75,7 @@ class SyncTests(unittest.TestCase):
         initial = {"configuration.yaml": b"default_config:\n# baseline\n", "automations.yaml": b"[]\n",
                    "scripts.yaml": b"", "scenes.yaml": b"", "www/image.svg": b"<svg/>\n",
                    "README.md": b"Keep this\n", "docs/notes.md": b"Documentation\n",
-                   "dashboards/hemma.yaml": b"views:\n  - title: Original\n"}
+                   "dashboards/overview.yaml": b"views:\n  - title: Original\n"}
         for name, content in initial.items():
             path = self.remote / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,7 +91,7 @@ class SyncTests(unittest.TestCase):
         (self.config / "www/community/card.js").write_text("keep installed card")
         self.commit()
         self.ha = FakeHA()
-        self.options = {"repository": str(self.remote), "default_branch": "main", "dashboard_sync": False, "dashboard_file": "dashboards/hemma.yaml"}
+        self.options = {"repository": str(self.remote), "default_branch": "main", "dashboard_sync": False, "dashboard_file": "dashboards/overview.yaml"}
         self.engine = Engine(self.config, self.root / "data", self.options, self.ha, allow_local=True)
 
     def git(self, *args):
@@ -206,7 +206,7 @@ class SyncTests(unittest.TestCase):
         self.ha.config = {"views": [{"title": "From HA"}]}
         plan = self.engine.preview("push", "ha/dashboard")
         self.engine.push(plan["id"], "Export dashboard")
-        self.assertEqual(parse_dashboard(self.git("show", "ha/dashboard:dashboards/hemma.yaml").encode()), self.ha.config)
+        self.assertEqual(parse_dashboard(self.git("show", "ha/dashboard:dashboards/overview.yaml").encode()), self.ha.config)
         plan = self.engine.preview("pull", "main")
         self.engine.pull(plan["id"])
         self.assertEqual(self.ha.config["views"][0]["title"], "Original")
@@ -215,7 +215,7 @@ class SyncTests(unittest.TestCase):
 
     def test_dashboard_api_failure_rolls_back_files_and_dashboard(self):
         self.engine.dashboard_sync = True
-        self.change_remote("dashboards/hemma.yaml", "views:\n  - title: New\n")
+        self.change_remote("dashboards/overview.yaml", "views:\n  - title: New\n")
         before = inventory(self.config)
         self.ha.fail_save_once = True
         plan = self.engine.preview("pull", "main")
@@ -264,12 +264,18 @@ class SyncTests(unittest.TestCase):
         engine = Engine(self.config, self.root / "fresh-data", options, self.ha, allow_local=True)
         self.assertEqual(engine.dashboard_file, "dashboards/dashboard.yaml")
 
-    def test_existing_installation_keeps_legacy_mapping_on_upgrade(self):
+    def test_repository_cache_does_not_choose_a_dashboard_filename(self):
         self.engine.branches()
         (self.root / "data/dashboard_default.txt").unlink()
         options = {**self.options, "dashboard_file": ""}
         engine = Engine(self.config, self.root / "data", options, self.ha, allow_local=True)
-        self.assertEqual(engine.dashboard_file, "dashboards/hemma.yaml")
+        self.assertEqual(engine.dashboard_file, "dashboards/dashboard.yaml")
+
+    def test_explicit_saved_dashboard_default_survives_upgrade(self):
+        (self.root / "data/dashboard_default.txt").write_text("dashboards/custom.yaml")
+        options = {**self.options, "dashboard_file": ""}
+        engine = Engine(self.config, self.root / "data", options, self.ha, allow_local=True)
+        self.assertEqual(engine.dashboard_file, "dashboards/custom.yaml")
 
     def test_missing_custom_dashboard_file_stops_pull(self):
         self.engine.configure_dashboard(True, "lovelace", "dashboards/not-in-main.yaml")
@@ -279,7 +285,7 @@ class SyncTests(unittest.TestCase):
 
     def test_restore_uses_original_target_after_dashboard_selection_changes(self):
         self.engine.dashboard_sync = True
-        self.change_remote("dashboards/hemma.yaml", "views:\n  - title: Incoming\n")
+        self.change_remote("dashboards/overview.yaml", "views:\n  - title: Incoming\n")
         plan = self.engine.preview("pull", "main")
         self.engine.pull(plan["id"])
         self.ha.dashboards = lambda: [{"title": "Other", "url_path": "dashboard-other", "mode": "storage"}]
@@ -431,16 +437,16 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(engine.status()["last_result"]["commit"], result["commit"])
 
     def test_custom_root_yaml_can_be_selected_and_pushed(self):
-        (self.config / "huset.yaml").write_text("sensor: []\n")
-        self.assertNotIn("huset.yaml", self.engine.current())
+        (self.config / "custom.yaml").write_text("sensor: []\n")
+        self.assertNotIn("custom.yaml", self.engine.current())
         catalogue = self.engine.scope_catalog()
-        entry = next(e for e in catalogue["entries"] if e["path"] == "huset.yaml")
+        entry = next(e for e in catalogue["entries"] if e["path"] == "custom.yaml")
         self.assertFalse(entry["blocked"])
-        self.engine.configure_scope(["huset.yaml"], [])
+        self.engine.configure_scope(["custom.yaml"], [])
         plan = self.engine.preview("push", "ha/custom-file")
-        self.assertEqual([c["path"] for c in plan["changes"]], ["huset.yaml"])
+        self.assertEqual([c["path"] for c in plan["changes"]], ["custom.yaml"])
         self.engine.push(plan["id"], "Save custom file")
-        self.assertEqual(self.git("show", "ha/custom-file:huset.yaml"), "sensor: []")
+        self.assertEqual(self.git("show", "ha/custom-file:custom.yaml"), "sensor: []")
         self.assertEqual(self.git("show", "ha/custom-file:configuration.yaml"), "default_config:\n# baseline")
 
     def test_folder_selection_includes_future_files_and_respects_exclusions(self):
@@ -455,27 +461,27 @@ class SyncTests(unittest.TestCase):
 
     def test_scope_persists_and_invalidates_preview(self):
         plan = self.engine.preview("push", "ha/old-scope")
-        self.engine.configure_scope(["huset.yaml"], [])
+        self.engine.configure_scope(["custom.yaml"], [])
         self.assertEqual(self.engine.plans, {})
         with self.assertRaises(SyncError):
             self.engine.push(plan["id"], "Old")
         engine = Engine(self.config, self.root / "data", self.options, self.ha, allow_local=True)
-        self.assertEqual(engine.scope.includes, ["huset.yaml"])
+        self.assertEqual(engine.scope.includes, ["custom.yaml"])
 
     def test_selected_remote_only_file_can_be_imported_and_restored_after_scope_change(self):
-        self.change_remote("huset.yaml", "sensor: []\n")
+        self.change_remote("custom.yaml", "sensor: []\n")
         before = (self.config / "configuration.yaml").read_bytes()
-        self.engine.configure_scope(["huset.yaml"], [])
+        self.engine.configure_scope(["custom.yaml"], [])
         plan = self.engine.preview("pull", "main")
         self.engine.pull(plan["id"])
-        self.assertEqual((self.config / "huset.yaml").read_text(), "sensor: []\n")
+        self.assertEqual((self.config / "custom.yaml").read_text(), "sensor: []\n")
         self.assertEqual((self.config / "configuration.yaml").read_bytes(), before)
         self.engine.configure_scope(["themes/"], [])
         self.engine.restore()
-        self.assertFalse((self.config / "huset.yaml").exists())
+        self.assertFalse((self.config / "custom.yaml").exists())
 
     def test_protected_paths_cannot_be_selected_even_with_folder_includes(self):
-        for name in ["secrets.yaml", ".storage/", "../config/", "zigbee2mqtt/", "www/community/", "custom_components/", "database.db", "/config/huset.yaml", "known_devices.yaml"]:
+        for name in ["secrets.yaml", ".storage/", "../config/", "zigbee2mqtt/", "www/community/", "custom_components/", "database.db", "/config/custom.yaml", "known_devices.yaml"]:
             with self.assertRaises(SyncError):
                 self.engine.configure_scope([name], [])
         entries = {e["path"]: e for e in self.engine.scope_catalog()["entries"]}
@@ -484,17 +490,17 @@ class SyncTests(unittest.TestCase):
         self.assertNotIn(".storage/lovelace", entries)
 
     def test_deselected_files_are_not_deleted_from_github(self):
-        self.change_remote("huset.yaml", "sensor: []\n")
+        self.change_remote("custom.yaml", "sensor: []\n")
         (self.config / "configuration.yaml").write_text("default_config:\n# changed\n")
         self.engine.configure_scope(["configuration.yaml"], [])
         plan = self.engine.preview("push", "ha/selected")
         self.engine.push(plan["id"], "Only config")
-        self.assertEqual(self.git("show", "ha/selected:huset.yaml"), "sensor: []")
+        self.assertEqual(self.git("show", "ha/selected:custom.yaml"), "sensor: []")
 
     def test_selected_symlink_is_rejected(self):
-        (self.config / "huset.yaml").symlink_to(self.config / "secrets.yaml")
+        (self.config / "custom.yaml").symlink_to(self.config / "secrets.yaml")
         with self.assertRaisesRegex(SyncError, "Symbolisk"):
-            self.engine.configure_scope(["huset.yaml"], [])
+            self.engine.configure_scope(["custom.yaml"], [])
 
     def test_selected_json_with_credentials_is_blocked(self):
         (self.config / "extra.json").write_text('{"mqtt_password": "private-value"}')
@@ -510,10 +516,38 @@ class SyncTests(unittest.TestCase):
     def test_regular_dashboard_files_and_api_mapping_do_not_collide(self):
         folder = self.config / "dashboards"
         folder.mkdir()
-        (folder / "hemma.yaml").write_text("views:\n  - title: Disk\n")
+        (folder / "overview.yaml").write_text("views:\n  - title: Disk\n")
         self.engine.configure_scope(["dashboards/"], [])
-        self.engine.configure_dashboard(True, "lovelace", "dashboards/hemma.yaml")
-        self.assertEqual(parse_dashboard(self.engine.current()["dashboards/hemma.yaml"]), self.ha.config)
+        self.engine.configure_dashboard(True, "lovelace", "dashboards/overview.yaml")
+        self.assertEqual(parse_dashboard(self.engine.current()["dashboards/overview.yaml"]), self.ha.config)
+
+    def test_disk_dashboard_import_and_restore_when_api_sync_disabled(self):
+        path = self.config / "dashboards/overview.yaml"
+        path.parent.mkdir(exist_ok=True)
+        original = b"views:\n  - title: Local\n"
+        path.write_bytes(original)
+        self.engine.configure_scope(["dashboards/"], [])
+        plan = self.engine.preview("pull", "main")
+        self.engine.pull(plan["id"])
+        self.assertEqual(parse_dashboard(path.read_bytes())["views"][0]["title"], "Original")
+        self.assertEqual(self.ha.config["views"][0]["title"], "Original")
+        self.assertIn("dashboards/overview.yaml", [p["name"] for p in self.engine.read_journal()["paths"]])
+        self.engine.restore()
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_disk_dashboard_deletion_and_restore_when_api_sync_disabled(self):
+        path = self.config / "dashboards/overview.yaml"
+        path.parent.mkdir(exist_ok=True)
+        original = b"views: []\n"
+        path.write_bytes(original)
+        self.engine.configure_scope(["dashboards/"], [])
+        (self.remote / "dashboards/overview.yaml").unlink()
+        self.commit()
+        plan = self.engine.preview("pull", "main", allow_deletions=True)
+        self.engine.pull(plan["id"])
+        self.assertFalse(path.exists())
+        self.engine.restore()
+        self.assertEqual(path.read_bytes(), original)
 
     def test_http_requires_ingress_and_csrf(self):
         app = create_app(self.engine, testing=False)
